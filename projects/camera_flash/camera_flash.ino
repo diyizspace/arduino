@@ -5,18 +5,27 @@
 
 Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 5, 6);
 
+const int backlightPin = 7;
 boolean configMode = true;
-boolean backlight = false;
-int contrast = 65;
-int lastInput = 0;
-long lastPress = 0;
 
 void setup() {
   pinMode(backlightPin, OUTPUT);
   lcd.begin();
+int contrast = 60;
+
   lcd.setContrast(contrast);
+  
+boolean backlight = true;
+  if (backlight) {
+    backlight = false;
+    digitalWrite(backlightPin, 0);
+  } else {
+    backlight = true;
+    digitalWrite(backlightPin, 200);
+  }
+
   show("DIYIZ.COM", 2, "CAMERA FLASH", 2);
-  delay(2000);
+  delay(1000);
 }
 
 void show(String line1, int font1, String line2, int font2) {
@@ -33,10 +42,10 @@ void show(String line1, int font1, String line2, int font2) {
 void loop() {
   if (configMode) {
     int input = key();
-    show("Input:", 2, String(input), 2);
-    delay(1000);
+    show("Change:", 2, String(input), 2);
+    delay(200);
   } else {
-
+    show("Mode:", 2, "Ready", 2);
   }
 }
 
@@ -51,16 +60,6 @@ int key() {
 //int eeAddress = 0;
 //EEPROM.put(eeAddress, f);
 //EEPROM.get(eeAddress, f);
-//  if (input == 17) {
-//    if (backlight) {
-//      backlight = false;
-//      digitalWrite(backlightPin, 0);
-//    }
-//    else {
-//      backlight = true;
-//      digitalWrite(backlightPin, 200);
-//    }
-//  }
 
 
 //int photoCellPin = A6;
