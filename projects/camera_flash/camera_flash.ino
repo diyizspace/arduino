@@ -7,24 +7,20 @@ Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 5, 6);
 
 const int backlightPin = 7;
 boolean configMode = true;
+int currentMenu = 0;
+int const menuLength = 10;
+int menus[menuLength];
+String menuTitles[] = {"Brightness", "Delay", "Duration", "Menu3", "Menu4", "Menu5", "Menu6", "Menu7", "Menu8", "Menu9"};
+float f = 0.00f;
 
 void setup() {
   pinMode(backlightPin, OUTPUT);
   lcd.begin();
-int contrast = 60;
-
-  lcd.setContrast(contrast);
-  
-boolean backlight = true;
-  if (backlight) {
-    backlight = false;
-    digitalWrite(backlightPin, 0);
-  } else {
-    backlight = true;
-    digitalWrite(backlightPin, 200);
+  for (int i = 0; i < menuLength; i = i + 1) {
+    EEPROM.get(i, menus[i]);
   }
-
-  show("DIYIZ.COM", 2, "CAMERA FLASH", 2);
+  lcd.setContrast(60);
+  show("DIYIZ.COM", 1, "CAMERA FLASH", 1);
   delay(1000);
 }
 
@@ -40,13 +36,32 @@ void show(String line1, int font1, String line2, int font2) {
 }
 
 void loop() {
-  if (configMode) {
-    int input = key();
-    show("Change:", 2, String(input), 2);
-    delay(200);
-  } else {
-    show("Mode:", 2, "Ready", 2);
+  int input = key();
+  if (input == 17) {
+    switchMode();
   }
+  if (configMode) {
+    if (input == 1) {
+      if (currentMenu > 0) {
+        currentMenu -= 1;
+      }
+    }
+    if (input == 2) {
+      if (currentMenu < 9) {
+        currentMenu += 1;
+      }
+    }
+    if ( input == 5) {
+      menus[currentMenu] += 1;
+    }
+    if ( input == 9) {
+      menus[currentMenu] -= 1;
+    }
+    show(String(menuTitles[currentMenu]), 1, String(menus[currentMenu]), 1);
+    delay(100);
+    return;
+  }
+  show("Mode:", 1, "Ready", 1);
 }
 
 int key() {
@@ -57,11 +72,30 @@ int key() {
   return up + down + left + right;
 }
 
-//int eeAddress = 0;
-//EEPROM.put(eeAddress, f);
-//EEPROM.get(eeAddress, f);
+void switchMode() {
+  if (configMode) {
+    configMode = false;
+    for (int i = 0; i < menuLength; i = i + 1) {
+      EEPROM.put(i, menus[i]);
+    }
+    show("Exiting ... ", 1, "config mode", 1);
+    delay(2000);
+    return;
+  }
+  show("Entering ... ", 1, "config mode", 1);
+  delay(2000);
+  configMode = true;
+}
 
-
+void reset() {
+  String msg = "...";
+  for (int i = 0; i < 10; i++) {
+    msg += ".";
+    show("Restart", 1, msg, 1);
+    delay(250);
+  }
+  asm volatile ( "jmp 0");
+}
 //int photoCellPin = A6;
 //int cameraFlashSignalPin = A7;
 //int flashTrigerPin = 10;
