@@ -7,11 +7,21 @@ Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 5, 6);
 
 const int backlightPin = 7;
 boolean configMode = true;
+int buttonValue;
+int lastButtonValue = LOW;
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 50;
+
 int currentMenu = 0;
 int const menuLength = 10;
 int menus[menuLength];
 String menuTitles[] = {"Brightness", "Delay", "Duration", "Menu3", "Menu4", "Menu5", "Menu6", "Menu7", "Menu8", "Menu9"};
 float f = 0.00f;
+
+int photoCellPin = A2;
+int cameraFlashSignalPin = A8;
+int flashTrigerPin = 10;
+
 
 void setup() {
   pinMode(backlightPin, OUTPUT);
@@ -41,27 +51,48 @@ void loop() {
     switchMode();
   }
   if (configMode) {
-    if (input == 1) {
-      if (currentMenu > 0) {
-        currentMenu -= 1;
-      }
-    }
-    if (input == 2) {
-      if (currentMenu < 9) {
-        currentMenu += 1;
-      }
-    }
-    if ( input == 5) {
-      menus[currentMenu] += 1;
-    }
-    if ( input == 9) {
-      menus[currentMenu] -= 1;
-    }
-    show(String(menuTitles[currentMenu]), 1, String(menus[currentMenu]), 1);
-    delay(100);
-    return;
+    doConfig();
+  } else {
+    doFlash();
   }
   show("Mode:", 1, "Ready", 1);
+}
+void doFlash() {
+  void loop() {
+    int cameraFlashSignalValue = analogRead(cameraFlashSignalPin);
+    if (cameraFlashSignalValue > 600) {
+      analogWrite(flashTrigerPin, 240);
+      delay(500);
+    }
+    delay(5);
+  }
+}
+void doConfig() {
+  if (input != lastButtonValue) {
+    lastDebounceTime = millis();
+  }
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    return;
+  }
+  lastButtonValue = input;
+  if (input == 1) {
+    if (currentMenu > 0) {
+      currentMenu -= 1;
+    }
+  }
+  if (input == 2) {
+    if (currentMenu < 9) {
+      currentMenu += 1;
+    }
+  }
+  if ( input == 5) {
+    menus[currentMenu] += 1;
+  }
+  if ( input == 9) {
+    menus[currentMenu] -= 1;
+  }
+  show(String(menuTitles[currentMenu]), 1, String(menus[currentMenu]), 1);
+  delay(250);
 }
 
 int key() {
@@ -96,20 +127,3 @@ void reset() {
   }
   asm volatile ( "jmp 0");
 }
-//int photoCellPin = A6;
-//int cameraFlashSignalPin = A7;
-//int flashTrigerPin = 10;
-//
-//void setup() {
-//  pinMode(flashTrigerPin, OUTPUT);
-//}
-//
-//void loop() {
-//  int cameraFlashSignalValue = analogRead(cameraFlashSignalPin);
-//  if(cameraFlashSignalValue > 600) {
-//    analogWrite(flashTrigerPin, 240);
-//    delay(500);
-//  }
-//  delay(5);
-//}
-
