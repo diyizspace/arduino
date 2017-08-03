@@ -13,20 +13,28 @@ unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
 int currentMenu = 0;
-int const menuLength = 10;
+int const menuLength = 4;
 int menus[menuLength];
-String menuTitles[] = {"Brightness", "Delay", "Duration", "Menu3", "Menu4", "Menu5", "Menu6", "Menu7", "Menu8", "Menu9"};
+String menuTitles[] = {"Flash level", "Delay", "Use photocell", "LCD brightness"};
+int menuStep[] = {10, 10, 1, 5};
+int defaults[] = {200, 250, 0, 60};
+
+
 float f = 0.00f;
 
 int photoCellPin = A2;
-int cameraFlashSignalPin = A8;
-int flashTrigerPin = 10;
+int cameraFlashSignalPin = A0;
+int flashTrigerPin = 8;
 
 
 void setup() {
+  pinMode(flashTrigerPin, OUTPUT);
   pinMode(backlightPin, OUTPUT);
   lcd.begin();
-  for (int i = 0; i < menuLength; i = i + 1) {
+  for (int i = 1; i <= menuLength; i = i + 1) {
+    EEPROM.put(i, defaults[i]);
+  }
+  for (int i = 1; i <= menuLength; i = i + 1) {
     EEPROM.get(i, menus[i]);
   }
   lcd.setContrast(60);
@@ -51,23 +59,20 @@ void loop() {
     switchMode();
   }
   if (configMode) {
-    doConfig();
+    doConfig(input);
   } else {
     doFlash();
   }
-  show("Mode:", 1, "Ready", 1);
 }
 void doFlash() {
-  void loop() {
-    int cameraFlashSignalValue = analogRead(cameraFlashSignalPin);
-    if (cameraFlashSignalValue > 600) {
-      analogWrite(flashTrigerPin, 240);
-      delay(500);
-    }
-    delay(5);
+  if (analogRead(cameraFlashSignalPin) > 600) {
+    show("Flashing triggered", 1, "...", 1);
+    analogWrite(flashTrigerPin, menus[0]);
+    delay(menus[1]);
+    show("Standby", 1, "...", 1);
   }
 }
-void doConfig() {
+void doConfig(int input) {
   if (input != lastButtonValue) {
     lastDebounceTime = millis();
   }
@@ -81,40 +86,40 @@ void doConfig() {
     }
   }
   if (input == 2) {
-    if (currentMenu < 9) {
+    if (currentMenu < menuLength) {
       currentMenu += 1;
     }
   }
   if ( input == 5) {
-    menus[currentMenu] += 1;
+    menus[currentMenu] += menuStep[currentMenu];
   }
   if ( input == 9) {
-    menus[currentMenu] -= 1;
+    menus[currentMenu] -= menuStep[currentMenu];
   }
   show(String(menuTitles[currentMenu]), 1, String(menus[currentMenu]), 1);
-  delay(250);
+  delay(50);
 }
 
 int key() {
   int up = digitalRead(10);
   int down = digitalRead(16) * 2;
-  int left = digitalRead(14) * 5;
-  int right = digitalRead(15) * 9;
+  int left = digitalRead(15) * 5;
+  int right = digitalRead(14) * 9;
   return up + down + left + right;
 }
 
 void switchMode() {
   if (configMode) {
     configMode = false;
-    for (int i = 0; i < menuLength; i = i + 1) {
+    for (int i = 1; i <= menuLength; i = i + 1) {
       EEPROM.put(i, menus[i]);
     }
     show("Exiting ... ", 1, "config mode", 1);
-    delay(2000);
+    delay(1000);
     return;
   }
   show("Entering ... ", 1, "config mode", 1);
-  delay(2000);
+  delay(1000);
   configMode = true;
 }
 
