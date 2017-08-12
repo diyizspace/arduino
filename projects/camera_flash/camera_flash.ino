@@ -37,16 +37,15 @@ class Menu {
           value = new_value;
         }
       }
-    };
-
+    }
 
     String get_title() {
       return title;
-    };
+    }
 
     int get_value() {
       return value;
-    };
+    }
 
     String get_value_as_string() {
       return String(value);
@@ -55,32 +54,31 @@ class Menu {
 
 class Menus {
     enum Mode {CONFIG = 0, READY = 1} mode;
-    byte pin_up;
-    byte pin_down;
-    byte pin_left;
-    byte pin_right;
+    int pin_up;
+    int pin_down;
+    int pin_left;
+    int pin_right;
     int current_menu = 0;
-    int menu_length;
-    Menu menus[];
+    int menu_length = 4;
+    Menu menus[4];
   public:
-    Menus(byte _pin_up, byte _pin_down, byte _pin_left, byte _pin_right) {
+    Menus(int _pin_up, int _pin_down, int _pin_left, int _pin_right) {
       pin_up = _pin_up;
       pin_down = _pin_down;
       pin_left = _pin_left;
       pin_right = _pin_right;
-    };
+    }
     void setup() {
       if (get_input() == "1111") {
         mode = READY;
       } else {
         mode = CONFIG;
       }
-      menu_length = 4;
-      menus[0] = Menu("Brightness", 150, 150, 100, 255, 5);
-      menus[1] = Menu("Pre-delay", 0, 0, 0, 1000, 50);
-      menus[2] = Menu("Duration", 250, 250, 125, 1000, 125);
-      menus[3] = Menu("LCD brightness", 60, 60, 40, 70, 5);
-    };
+      //      menus[0] = Menu("Brightness", 150, 150, 100, 255, 5);
+      //      menus[1] = Menu("Pre-delay", 0, 0, 0, 1000, 50);
+      //      menus[2] = Menu("Duration", 250, 250, 125, 1000, 125);
+      //      menus[3] = Menu("LCD brightness", 60, 60, 40, 70, 5);
+    }
 
     Menu get_current_menu () {
       return menus[current_menu]  ;
@@ -99,28 +97,29 @@ class Menus {
         menus[current_menu].handle(input);
       }
       delay(50);
-    };
+    }
 
     String get_input() {
       return String(digitalRead(pin_up) + digitalRead(pin_down) + digitalRead(pin_left) + digitalRead(pin_right));
-    };
+    }
 
     boolean is_config_mode() {
       return mode == CONFIG;
-    };
+    }
 };
 Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 5, 6);
 
-Menus menus = Menus(10, 16, 15, 14);
+Menus menus(10, 16, 15, 14);
 
 
 void setup() {
   lcd.begin();
   lcd.setContrast(60);
-  show("DIYIZ FLASH", 1, "BOOTING ...", 1);
+  show("DIYIZ.SPACE", 1, "BOOTING ...", 1);
   Serial.begin(9600);
   Serial.println("Start...");
-  menus.setup();
+  //  menus.setup();
+
   delay(1000);
 }
 
@@ -131,8 +130,6 @@ void loop() {
     show(m.get_title(), 1, m.get_value_as_string(), 1);
   } else {
     show("Stand by", 1, "...", 1);
-    Serial.println("standby");
-    delay(1000);
   }
 }
 
