@@ -57,7 +57,7 @@ class Menus {
     int pin_down;
     int pin_left;
     int pin_right;
-    int current_menu_index = 0;
+    int current_index = 0;
     int menu_length = 4;
     Menu menus[4] = {
       Menu("Brightness", 150, 150, 100, 255, 5),
@@ -80,31 +80,47 @@ class Menus {
       }
     }
 
+    int handle() {
+      int input = get_input();
+      if (input == 0) {
+        return 0;
+      } else if (input == 8) {
+        previous_menu();
+      } else if (input == 4) {
+        next_menu();
+      } else if (input == 2) {
+        menus[current_index].descrease();
+      } else if (input == 1) {
+        menus[current_index].increase();
+      }
+      return input;
+    }
+
     Menu get_menu(int position) {
       return menus[position]  ;
     }
 
     Menu get_current_menu() {
-      return get_menu(current_menu_index);
+      return get_menu(current_index);
     }
 
-    int get_current_menu_index() {
-      return current_menu_index;
+    int get_current_index() {
+      return current_index;
     }
 
     void previous_menu() {
-      current_menu_index -= 1;
-      if (current_menu_index < 0) {
-        current_menu_index = menu_length - 1;
-      }
-    }
-    void next_menu() {
-      current_menu_index += 1;
-      if (current_menu_index >= menu_length) {
-        current_menu_index = 0;
+      current_index -= 1;
+      if (current_index < 0) {
+        current_index = menu_length - 1;
       }
     }
 
+    void next_menu() {
+      current_index += 1;
+      if (current_index >= menu_length) {
+        current_index = 0;
+      }
+    }
 
     int get_input() {
       return 8 * digitalRead(pin_up) + 4 * digitalRead(pin_down) + 2 * digitalRead(pin_left) + digitalRead(pin_right);
@@ -134,33 +150,18 @@ void setup() {
 
 void loop() {
   if (menus.is_config_mode()) {
-    handle_config();
+    int result = menus.handle();
+    if (result == 0) {
+      return;
+    }
+    Menu m = menus.get_current_menu();
+    show(m.get_title(), 1, m.get_value_as_string(), 1);
+    Serial.println(m.get_title() + m.get_value_as_string());
   } else {
     Serial.println("stand by");
     delay(1000);
     show("Stand by", 1, "...", 1);
   }
-}
-
-void handle_config() {
-  int input = menus.get_input();
-  if (input == 0) {
-    return 0;
-  } else if (input == 8) {
-    menus.previous_menu();
-  } else if (input == 4) {
-    menus.next_menu();
-  } else if (input == 2) {
-    Menu m = menus.get_current_menu();  
-    m.descrease();
-  } else if (input == 1) {
-    Menu m = menus.get_current_menu();  
-    m.increase();
-  }
-  Menu m = menus.get_current_menu();
-  show(m.get_title(), 1, m.get_value_as_string(), 1);
-  Serial.println(menus.get_current_menu_index() + "|" + m.get_value());
-  delay(250);
 }
 
 void show(String line1, int font1, String line2, int font2) {
