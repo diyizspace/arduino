@@ -57,12 +57,13 @@ class Menu {
 
 class Menus {
     int current_index = 0;
-    int menu_length = 4;
-    Menu menus[4] = {
-      Menu("Flash level", 150, 150, 100, 255, 10),
+    int menu_length = 5;
+    Menu menus[5] = {
       Menu("Pre-delay", 0, 0, 0, 1000, 50),
+      Menu("Flash level", 150, 150, 100, 255, 10),
       Menu("Duration", 250, 250, 100, 1000, 50),
-      Menu("Photo censored", 0, 0, 0, 1, 1)
+      Menu("Photo censored", 0, 0, 0, 1, 1),
+      Menu("Lcd back light", 0, 0, 0, 1, 1)
     };
 
   public:
@@ -124,71 +125,44 @@ Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 5, 6);
 
 Menus menus;
 
-const byte pin_flash = 8;
-const byte pin_up = 10;
-const byte pin_down = 16;
-const byte pin_left = 14;
-const byte pin_right = 15;
-const byte pin_photo_censored = A2;
-
-boolean is_config_mode = true;
+const byte PIN_FLASH = 10;
+const byte PIN_FLASH_TRIGER = 16;
+const byte PIN_UP = 15;
+const byte PIN_DOWN = 14;
+const byte PIN_LEFT = 8;
+const byte PIN_RIGHT = 7;
+const byte PIN_LCD_BACK_LED = 9;
+const byte PIN_PHOTO_SENSOR = 18;
 
 void setup() {
   lcd.begin();
-  lcd.setContrast(60);
+  lcd.setContrast(50);
   show("diyiz.space", "led flashlight", "starting...", "");
   menus.setup();
-  Serial.begin(9600);
-  Serial.println("ready...");
   delay(500);
 }
 
 void loop() {
-  int input = get_input();
-  if (input == 0) {
+  if (digitalRead(PIN_FLASH_TRIGER) == LOW) {
+    show("Flash fired...", menus.get_menu(0).get_value_as_string(), menus.get_menu(1).get_value_as_string(), menus.get_menu(2).get_value_as_string());
+    delay(menus.get_menu(0).get_value());
+    analogWrite(PIN_FLASH, menus.get_menu(1).get_value());
+    delay(menus.get_menu(2).get_value());
+    analogWrite(PIN_FLASH, LOW);
+    doMenu(-1);
     return;
   }
-  Serial.println(input);
-
-  if (input == 12) {
-    switch_mode();
-    delay(1000);
-  }
-  if (is_config_mode) {
-    do_menu(input);
-    delay(250);
-  } else {
-    if (input == 16) {
-      show("Flash fired", menus.get_menu(0).get_value_as_string(),
-           menus.get_menu(0).get_value_as_string(), menus.get_menu(2).get_value_as_string());
-      delay(menus.get_menu(0).get_value());
-      analogWrite(pin_flash, menus.get_menu(0).get_value());
-      delay(menus.get_menu(2).get_value());
-    } else {
-      show("stand by mode", "...", "", "");  
-    } 
-  }
+  doMenu(8 * digitalRead(PIN_UP) + 4 * digitalRead(PIN_DOWN) + 2 * digitalRead(PIN_LEFT) + digitalRead(PIN_RIGHT));
+  delay(1);
 }
 
-void switch_mode() {
-  if (is_config_mode) {
-    is_config_mode = false;
-    menus.save();
-    return;
-  }
-  is_config_mode = true;
-}
-
-void do_menu(int input) {
+void doMenu(byte input) {
   menus.handle(input);
   Menu m = menus.get_current_menu();
   show(m.get_title(), m.get_value_as_string(), "", "");
-  Serial.println(m.get_title() + "|" + m.get_value_as_string());
+  delay(200);
 }
 
-int get_input() {
-  return 8 * digitalRead(pin_up) + 4 * digitalRead(pin_down) + 2 * digitalRead(pin_left) + digitalRead(pin_right);
-}
 void show(String line1, String line2, String line3, String line4) {
   lcd.clearDisplay();
   lcd.setTextColor(BLACK);
