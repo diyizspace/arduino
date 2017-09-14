@@ -60,10 +60,10 @@ class Menus {
     int menu_length = 5;
     Menu menus[5] = {
       Menu("Pre-delay", 0, 0, 0, 1000, 50),
-      Menu("Flash level", 150, 150, 100, 255, 10),
-      Menu("Duration", 250, 250, 100, 1000, 50),
+      Menu("Flash level", 150, 150, 0, 255, 5),
+      Menu("Duration", 250, 250, 0, 1000, 50),
       Menu("Photo censored", 0, 0, 0, 1, 1),
-      Menu("Lcd back light", 0, 0, 0, 1, 1)
+      Menu("Lcd back light", 0, 0, 0, 255, 25)
     };
 
   public:
@@ -121,44 +121,82 @@ class Menus {
       }
     }
 };
-Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 5, 6);
+Adafruit_PCD8544 lcd = Adafruit_PCD8544(2, 3, 4, 7, 8);
 
 Menus menus;
 
-const byte PIN_FLASH = 10;
-const byte PIN_FLASH_TRIGER = 16;
-const byte PIN_UP = 15;
-const byte PIN_DOWN = 14;
-const byte PIN_LEFT = 8;
-const byte PIN_RIGHT = 7;
-const byte PIN_LCD_BACK_LED = 9;
-const byte PIN_PHOTO_SENSOR = 18;
+const byte PIN_FLASH_TRIGER = 10;
+const byte PIN_FLASH_SIGNAL = A7;
+const byte PIN_UP = 9;
+const byte PIN_DOWN = 6;
+const byte PIN_LEFT = 12;
+const byte PIN_RIGHT = 13;
+const byte PIN_LCD_BACK_LED = 5;
+const byte PIN_PHOTO_SENSOR = A6;
+
+boolean is_stand_by = true;
 
 void setup() {
-  lcd.begin();
-  lcd.setContrast(50);
-  show("diyiz.space", "led flashlight", "starting...", "");
+  pinMode(PIN_FLASH_TRIGER, OUTPUT);
+  pinMode(PIN_FLASH_SIGNAL, INPUT);
+  pinMode(PIN_UP, INPUT);
+  pinMode(PIN_DOWN, INPUT);
+  pinMode(PIN_LEFT, INPUT);
+  pinMode(PIN_RIGHT, INPUT);
+  pinMode(PIN_LCD_BACK_LED, OUTPUT);
+  pinMode(PIN_PHOTO_SENSOR, INPUT);
+  Serial.begin(9600);
   menus.setup();
-  delay(500);
+  lcd.begin();
+  analogWrite(PIN_LCD_BACK_LED, menus.get_menu(4).get_value());
+  lcd.setContrast(60);
+  String msg = ".";
+  for (int i = 0; i < 10; i++) {
+    msg += ".";
+    show("Left for setup", "Right for ready", msg, "");
+    if (digitalRead(PIN_UP)) {
+      break;
+    }
+    if (digitalRead(PIN_DOWN)) {
+      is_stand_by = false;
+      break;
+    }
+    delay(250);
+  }
+  show("standing by", "...", "", "");
 }
 
 void loop() {
-  if (digitalRead(PIN_FLASH_TRIGER) == LOW) {
-    show("Flash fired...", menus.get_menu(0).get_value_as_string(), menus.get_menu(1).get_value_as_string(), menus.get_menu(2).get_value_as_string());
-    delay(menus.get_menu(0).get_value());
-    analogWrite(PIN_FLASH, menus.get_menu(1).get_value());
-    delay(menus.get_menu(2).get_value());
-    analogWrite(PIN_FLASH, LOW);
-    doMenu(-1);
-    return;
+  if (is_stand_by) {
+    if (analogRead(PIN_FLASH_SIGNAL) == 0) {
+      delay(menus.get_menu(0).get_value());
+      analogWrite(PIN_FLASH_TRIGER, menus.get_menu(1).get_value());
+      delay(menus.get_menu(2).get_value());
+      analogWrite(PIN_FLASH_TRIGER, 0);
+      show("info: " + analogRead(PIN_PHOTO_SENSOR), menus.get_menu(0).get_value_as_string(), menus.get_menu(1).get_value_as_string(), menus.get_menu(2).get_value_as_string());
+      return;
+    }
+  } else {
+    int input = 8 * digitalRead(PIN_UP) + 4 * digitalRead(PIN_DOWN) + 2 * digitalRead(PIN_LEFT) + digitalRead(PIN_RIGHT);
+    doMenu(input);
   }
-  doMenu(8 * digitalRead(PIN_UP) + 4 * digitalRead(PIN_DOWN) + 2 * digitalRead(PIN_LEFT) + digitalRead(PIN_RIGHT));
-  delay(1);
 }
 
-void doMenu(byte input) {
+void doMenu(int input) {
+  if (input == 12) {
+    menus.save();
+    show("saving...", "please wait", "", "");
+    delay(1000);
+    is_stand_by = true;
+    show("exiting config mode", "...", "", "");
+    delay(1000);
+    return;
+  }
   menus.handle(input);
   Menu m = menus.get_current_menu();
+  if (menus.get_current_index() == 4) {
+    analogWrite(PIN_LCD_BACK_LED, m.get_value());
+  }
   show(m.get_title(), m.get_value_as_string(), "", "");
   delay(200);
 }
